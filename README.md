@@ -18,12 +18,12 @@ Automated test suite generator for FastAPI (Python) web applications. Parses you
 ### From source (requires Rust)
 
 ```bash
-cargo install --git https://github.com/yourusername/coderag
+cargo install --git https://github.com/codeCrack-01/testfast
 ```
 
 ### Pre-built binaries
 
-Download the latest binary for your platform from the [Releases](https://github.com/yourusername/coderag/releases) page.
+Download the latest binary for your platform from the [Releases](https://github.com/codeCrack-01/testfast/releases) page.
 
 | Platform | Binary |
 |---|---|
@@ -86,7 +86,7 @@ Options:
 | OpenAI | `sk-...` | `gpt-4o` | `https://api.openai.com/v1/chat/completions` |
 | Anthropic | `sk-ant-...` | `claude-sonnet-4-20250514` | `https://api.anthropic.com/v1/messages` |
 | Groq | `gsk_...` | `llama-3.3-70b-versatile` | `https://api.groq.com/openai/v1/chat/completions` |
-| Gemini | `AIza...` | `gemini-1.5-flash` | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` |
+| Gemini | `AIza...` | `gemini-3.0-flash-preview` | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` |
 
 ### Quick `.env` setup
 
@@ -95,7 +95,7 @@ Copy-paste for a Gemini setup:
 ```env
 LLM_KEY=AIza...
 LLM_PROVIDER=gemini
-LLM_MODEL=gemini-2.0-flash-exp
+LLM_MODEL=gemini-3.0-flash-preview
 LLM_TIMEOUT=300
 ```
 

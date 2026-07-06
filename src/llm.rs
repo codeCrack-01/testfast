@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
 fn build_client() -> reqwest::blocking::Client {
@@ -71,9 +71,11 @@ fn openai_compatible_request(
         .header("Authorization", format!("Bearer {api_key}"))
         .json(&body)
         .send()
-        .with_context(|| format!("API request failed (timeout: {}s)", {
-            std::env::var("LLM_TIMEOUT").unwrap_or_else(|_| "120".into())
-        }))?;
+        .with_context(|| {
+            format!("API request failed (timeout: {}s)", {
+                std::env::var("LLM_TIMEOUT").unwrap_or_else(|_| "120".into())
+            })
+        })?;
 
     let status = resp.status();
     let body_text = resp.text().context("Failed to read response body")?;
@@ -93,7 +95,7 @@ fn openai_compatible_request(
 }
 
 fn gemini_generate(prompt: &str, api_key: &str) -> Result<String> {
-    let default_model = "gemini-1.5-flash";
+    let default_model = "gemini-3.0-flash-preview";
     // Try OpenAI-compatible endpoint with Bearer auth
     let result = openai_compatible_request(
         prompt,
@@ -115,20 +117,20 @@ fn gemini_generate(prompt: &str, api_key: &str) -> Result<String> {
         "generationConfig": {"temperature": 0.3},
     });
     let client = build_client();
-    let resp = client
-        .post(&url)
-        .json(&body)
-        .send()
-        .with_context(|| format!("Gemini native API request failed (timeout: {}s)", {
+    let resp = client.post(&url).json(&body).send().with_context(|| {
+        format!("Gemini native API request failed (timeout: {}s)", {
             std::env::var("LLM_TIMEOUT").unwrap_or_else(|_| "120".into())
-        }))?;
+        })
+    })?;
     let status = resp.status();
     let body_text = resp.text().context("Failed to read Gemini response")?;
     let json: Value = serde_json::from_str(&body_text)
         .with_context(|| format!("Failed to parse Gemini response: {body_text}"))?;
     if !status.is_success() {
         let msg = json["error"]["message"].as_str().unwrap_or(&body_text);
-        bail!("Gemini API error ({status}): {msg} (tried model `{model}` — set LLM_MODEL to override)");
+        bail!(
+            "Gemini API error ({status}): {msg} (tried model `{model}` — set LLM_MODEL to override)"
+        );
     }
     let text = json["candidates"][0]["content"]["parts"][0]["text"]
         .as_str()
@@ -170,9 +172,11 @@ fn anthropic_generate(prompt: &str, api_key: &str) -> Result<String> {
         .header("anthropic-version", "2023-06-01")
         .json(&body)
         .send()
-        .with_context(|| format!("Anthropic API request failed (timeout: {}s)", {
-            std::env::var("LLM_TIMEOUT").unwrap_or_else(|_| "120".into())
-        }))?;
+        .with_context(|| {
+            format!("Anthropic API request failed (timeout: {}s)", {
+                std::env::var("LLM_TIMEOUT").unwrap_or_else(|_| "120".into())
+            })
+        })?;
 
     let status = resp.status();
     let json: Value = resp.json().context("Failed to parse Anthropic response")?;
