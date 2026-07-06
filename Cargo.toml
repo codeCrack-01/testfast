@@ -1,11 +1,10 @@
 [package]
-name = "coderag"
-version = "1.1.0"
-edition = "2024"
-
-[[bin]]
 name = "testfast"
-path = "src/main.rs"
+version = "1.1.1"
+edition = "2024"
+description = "Automated test suite generator for FastAPI (Python) web applications"
+license = "MIT"
+repository = "https://github.com/codeCrack-01/testfast"
 
 [dependencies]
 clap={version="4", features=["derive"]}

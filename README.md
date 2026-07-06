@@ -88,6 +88,32 @@ Options:
 | Groq | `gsk_...` | `llama-3.3-70b-versatile` | `https://api.groq.com/openai/v1/chat/completions` |
 | Gemini | `AIza...` | `gemini-1.5-flash` | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` |
 
+### Quick `.env` setup
+
+Copy-paste for a Gemini setup:
+
+```env
+LLM_KEY=AIza...
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-2.0-flash-exp
+LLM_TIMEOUT=300
+```
+
+Or for OpenAI:
+
+```env
+LLM_KEY=sk-...
+LLM_MODEL=gpt-4o
+```
+
+Or any OpenAI-compatible endpoint (local models, etc.):
+
+```env
+LLM_KEY=noop
+LLM_BASE_URL=http://localhost:8000/v1/chat/completions
+LLM_MODEL=my-model
+```
+
 ## How It Works
 
 1. **Discover** — scans the project for the main FastAPI file (contains `FastAPI()`)
