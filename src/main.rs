@@ -12,6 +12,8 @@ use graph_router::resolve;
 use orchestrator::{build_prompt, Prompt};
 use test_agent::TestAgent;
 
+type PipelineResult = (SkeletonCache, Prompt, CoverageDelta, TestAgent, String, FileSkeleton, Vec<FileSkeleton>);
+
 mod ast_engine;
 mod autofix;
 mod cache;
@@ -47,8 +49,8 @@ fn print_skeleton_summary(skel: &FileSkeleton) {
 }
 
 /// Shared pipeline: parse, resolve, detect deltas, build prompt.
-/// Returns cache, prompt, delta, and agent for post-processing.
-fn run_pipeline(project_root: &Path, more: bool) -> Result<(SkeletonCache, Prompt, CoverageDelta, TestAgent, String, FileSkeleton)> {
+/// Returns cache, prompt, delta, agent, main file path, source skeleton, and dep skeletons.
+fn run_pipeline(project_root: &Path, more: bool) -> Result<PipelineResult> {
     let mut cache = SkeletonCache::load();
     let agent = TestAgent::load(project_root);
 
@@ -85,10 +87,10 @@ fn run_pipeline(project_root: &Path, more: bool) -> Result<(SkeletonCache, Promp
         println!("\n(Nothing to test — all functions covered by test files)");
     }
 
-    let prompt = build_prompt(&skel, &delta, agent.style_context(), more)?;
+    let prompt = build_prompt(&skel, &dep_skels, &delta, agent.style_context(), more)?;
     println!("\n=== Generated Prompt ({} tokens) ===", prompt.token_count);
 
-    Ok((cache, prompt, delta, agent, source_path.to_string_lossy().to_string(), skel))
+    Ok((cache, prompt, delta, agent, source_path.to_string_lossy().to_string(), skel, dep_skels))
 }
 
 fn load_env(project_dir: &Path) {
@@ -133,7 +135,7 @@ fn main() -> Result<()> {
         println!("Cleared existing tests and coverage memory.");
     }
 
-    let (cache, prompt, delta, mut agent, main_file, source) = run_pipeline(project_root, cli.more)?;
+    let (cache, prompt, delta, mut agent, main_file, source, dep_skels) = run_pipeline(project_root, cli.more)?;
 
     if delta.uncovered.is_empty() {
         println!("All functions covered — nothing to generate.");
@@ -165,7 +167,7 @@ fn main() -> Result<()> {
     generator::save_tests(project_root, Path::new(&main_file), &generated_code)?;
 
     if !cli.no_auto {
-        autofix::auto_fix_loop(project_root, Path::new(&main_file), &source, &api_key, cli.more)?;
+        autofix::auto_fix_loop(project_root, Path::new(&main_file), &source, &dep_skels, &api_key, cli.more)?;
     }
 
     for f in &delta.uncovered {

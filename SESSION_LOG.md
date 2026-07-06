@@ -99,6 +99,19 @@ Added `test_agent.md` — a persistent memory file stored in the project directo
 - `src/graph_router/mod.rs` — clippy fix
 - `SESSION_LOG.md`, `AGENTS.md` — updated
 
+## 2026-07-06 — Session 9: Release pipeline, README, LICENSE, CONTRIBUTING
+
+**Description**: Set up for distribution. GitHub Actions release pipeline builds binaries for Linux/macOS/Windows on tag push. Comprehensive README with all CLI flags, provider table, examples. MIT license and contributing guide.
+
+**Files created**:
+- `.github/workflows/release.yml` — 4-platform build + release
+- `LICENSE` — MIT
+- `CONTRIBUTING.md` — contribution guide
+
+**Files modified**:
+- `README.md` — full rewrite with CLI reference, env vars, provider table, examples
+- `SESSION_LOG.md` — updated
+
 ## 2026-07-06 — Session 8: Auto-fix loop, smart body stripping
 
 **Description**: Added `--auto`/`--no-auto` flag with auto-fix as default. The tool now runs pytest after generating tests, feeds failures back to the LLM, and retries up to 3 times. Smart body stripping keeps `return`, `raise`, `await`, `response.*`, `state.*` lines from function bodies so the LLM sees critical details without full source.
@@ -131,6 +144,24 @@ Added `test_agent.md` — a persistent memory file stored in the project directo
 - `find_main_file` skips `venv/`, `env/`, `site-packages/` directories
 - Better API error messages showing raw response body + model name
 - Skip LLM call entirely when no uncovered functions
+
+## 2026-07-06 — Session 9: Release pipeline, README, LICENSE, CONTRIBUTING + dependency context in prompts
+
+**Description**: Set up for distribution (GitHub Actions release, comprehensive README, MIT license, contributing guide). Also integrated dependency skeletons into prompts so the LLM sees imported module context.
+
+**Files created**:
+- `.github/workflows/release.yml` — 4-platform build + release
+- `LICENSE` — MIT
+- `CONTRIBUTING.md` — contribution guide
+
+**Files modified**:
+- `README.md` — full rewrite with CLI reference, env vars, provider table, examples
+- `src/orchestrator/mod.rs` — `build_prompt()` and `build_fix_prompt()` now accept `deps: &[FileSkeleton]` and include a Dependencies section in prompts
+- `src/main.rs` — passes dep_skels through pipeline to prompt + auto-fix; `PipelineResult` type alias
+- `src/autofix.rs` — `auto_fix_loop()` accepts and passes through dep skeletons
+- `SESSION_LOG.md` — updated
+
+## 2026-07-06 — Session 8: Auto-fix loop, smart body stripping
 
 **Files modified**:
 - `src/cli.rs` — added `--more`, `--re` flags

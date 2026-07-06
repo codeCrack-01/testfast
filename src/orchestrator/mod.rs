@@ -10,11 +10,13 @@ pub struct Prompt {
     pub token_count: u32,
 }
 
-/// Build a prompt from source context + uncovered functions.
+/// Build a prompt from source context + dependency skeletons + uncovered functions.
 /// `style_context` is optional test style guide (from test_agent.md).
-/// When `more` is true, include the full stripped source for richer context.
+/// When `more` is true, include the full raw source for the main module.
+/// Dependencies are always shown in compact form to keep token count manageable.
 pub fn build_prompt(
     source: &FileSkeleton,
+    deps: &[FileSkeleton],
     deltas: &CoverageDelta,
     style_context: &str,
     more: bool,
@@ -24,18 +26,26 @@ pub fn build_prompt(
     text.push_str("You are a test generator for a FastAPI application.\n");
     text.push_str("Generate pytest tests for the uncovered functions listed below.\n\n");
 
-    text.push_str(&format!("## Module: {}\n\n", source.path));
+    text.push_str(&format!("## Main Module: {}\n\n", source.path));
 
     if more {
-        // Full source (unmodified) for maximum context
         text.push_str("### Full Source\n\n```python\n");
         text.push_str(&source.raw_source);
         text.push_str("\n```\n\n");
     } else {
-        // Compact source — stripped bodies but keeps return/raise/await lines
         text.push_str("### Source\n\n```python\n");
         text.push_str(&source.source_text);
         text.push_str("\n```\n\n");
+    }
+
+    // Dependencies — always compact to save tokens
+    if !deps.is_empty() {
+        text.push_str(&format!("## Dependencies ({})\n\n", deps.len()));
+        for dep in deps {
+            text.push_str(&format!("### {}\n\n```python\n", dep.path));
+            text.push_str(&dep.source_text);
+            text.push_str("\n```\n\n");
+        }
     }
 
     text.push_str("## Functions to Test (uncovered)\n\n");
@@ -80,6 +90,7 @@ pub fn build_prompt(
 /// Build a prompt to fix failing tests.
 pub fn build_fix_prompt(
     source: &FileSkeleton,
+    deps: &[FileSkeleton],
     current_code: &str,
     pytest_output: &str,
     more: bool,
@@ -89,7 +100,7 @@ pub fn build_fix_prompt(
     text.push_str("The following tests failed when run against the FastAPI application.\n");
     text.push_str("Fix the failing tests and output ONLY the corrected Python code.\n\n");
 
-    text.push_str(&format!("## Module: {}\n\n", source.path));
+    text.push_str(&format!("## Main Module: {}\n\n", source.path));
 
     if more {
         text.push_str("### Full Source\n\n```python\n");
@@ -99,6 +110,15 @@ pub fn build_fix_prompt(
         text.push_str("### Source\n\n```python\n");
         text.push_str(&source.source_text);
         text.push_str("\n```\n\n");
+    }
+
+    if !deps.is_empty() {
+        text.push_str(&format!("## Dependencies ({})\n\n", deps.len()));
+        for dep in deps {
+            text.push_str(&format!("### {}\n\n```python\n", dep.path));
+            text.push_str(&dep.source_text);
+            text.push_str("\n```\n\n");
+        }
     }
 
     text.push_str("## Current Test Code (with failures)\n\n```python\n");

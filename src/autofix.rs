@@ -38,6 +38,7 @@ pub fn auto_fix_loop(
     project_dir: &Path,
     main_file: &Path,
     source: &FileSkeleton,
+    deps: &[FileSkeleton],
     api_key: &str,
     more: bool,
 ) -> Result<()> {
@@ -64,7 +65,7 @@ pub fn auto_fix_loop(
 
         println!("Failures detected. Asking LLM to fix...");
 
-        let fix_prompt = build_fix_prompt(source, &current_code, &truncated_output, more)?;
+        let fix_prompt = build_fix_prompt(source, deps, &current_code, &truncated_output, more)?;
         let fixed_code = crate::llm::generate(&fix_prompt.text, api_key)?;
         println!("Received fix ({} chars)", fixed_code.len());
 
