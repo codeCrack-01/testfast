@@ -1,20 +1,23 @@
-// The "stripped" representation of a Python file.
-// We'll define structs like FileSkeleton, FnDef, ModelDef here.
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Import {
     pub name: Option<String>,
     pub module: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FnDef {
     pub name: String,
     pub is_decorated: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClassDef {
     pub name: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSkeleton {
     pub path: String,
     pub imports: Vec<Import>,

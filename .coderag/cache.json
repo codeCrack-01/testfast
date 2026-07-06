@@ -1,0 +1,213 @@
+{
+  "files": {
+    "tests/overleaf_mcp/components/tool_schemas.py": {
+      "hash": "927e4f87ade81cbe3a020992206f5a1d778f355d717e0cabaac3ef382c1b2387",
+      "skeleton": {
+        "path": "tests/overleaf_mcp/components/tool_schemas.py",
+        "imports": [
+          {
+            "name": "BaseModel",
+            "module": "pydantic"
+          },
+          {
+            "name": "Field",
+            "module": "pydantic"
+          }
+        ],
+        "functions": [],
+        "classes": [
+          {
+            "name": "ReadParams"
+          },
+          {
+            "name": "UpdateAndPushParams"
+          },
+          {
+            "name": "ReadBibliographyParams"
+          },
+          {
+            "name": "UpdateAndPushBibliographyParams"
+          }
+        ],
+        "source_text": "from pydantic import BaseModel, Field\n\n\nclass ReadParams(BaseModel):\n    pass\n\n\nclass UpdateAndPushParams(BaseModel):\n    latex_content: str = Field(..., min_length=1)\n    commit_message: str = Field(default=\"AI update via Custom MCP\")\n\n\nclass ReadBibliographyParams(BaseModel):\n    bib_file: str = Field(default=\"references.bib\", description=\"Name of the .bib file\")\n\n\nclass UpdateAndPushBibliographyParams(BaseModel):\n    bib_content: str = Field(..., min_length=1)\n    bib_file: str = Field(default=\"references.bib\", description=\"Name of the .bib file\")\n    commit_message: str = Field(default=\"AI bibliography update via Custom MCP\")\n\n\nTOOL_SCHEMAS = {\n    \"read_paper\": ReadParams,\n    \"update_and_push_paper\": UpdateAndPushParams,\n    \"read_bibliography\": ReadBibliographyParams,\n    \"update_and_push_bibliography\": UpdateAndPushBibliographyParams,\n}\n",
+        "token_count": 207
+      }
+    },
+    "tests/overleaf_mcp/components/mcp_endpoints.py": {
+      "hash": "bfc71310189ad35b3d03814419415aa425188916fcb275997f9c3bc4f1e09a3e",
+      "skeleton": {
+        "path": "tests/overleaf_mcp/components/mcp_endpoints.py",
+        "imports": [
+          {
+            "name": "APIRouter",
+            "module": "fastapi"
+          },
+          {
+            "name": "HTTPException",
+            "module": "fastapi"
+          },
+          {
+            "name": "BaseModel",
+            "module": "pydantic"
+          },
+          {
+            "name": "TOOLS",
+            "module": ".tool_methods"
+          },
+          {
+            "name": "TOOL_SCHEMAS",
+            "module": ".tool_schemas"
+          }
+        ],
+        "functions": [
+          {
+            "name": "execute_tools",
+            "is_decorated": true
+          },
+          {
+            "name": "get_tools",
+            "is_decorated": true
+          }
+        ],
+        "classes": [
+          {
+            "name": "ToolRequest"
+          }
+        ],
+        "source_text": "from fastapi import APIRouter, HTTPException\nfrom pydantic import BaseModel\n\nfrom .tool_methods import TOOLS\nfrom .tool_schemas import TOOL_SCHEMAS\n\nmcp = APIRouter()\n\n\nclass ToolRequest(BaseModel):\n    tool: str\n    params: dict[str, object]\n\n\n@mcp.post(\"/execute\")\nasync def execute_tools(req: ToolRequest):\n        ...\n\n\n\n@mcp.get(\"/tools\")\nasync def get_tools():\n        ...\n\n",
+        "token_count": 91
+      }
+    },
+    "tests/overleaf_mcp/components/tool_methods.py": {
+      "hash": "e197c2abeafd16518176fc4997c4964f0fd31ac70ac4286069f754010d60e17b",
+      "skeleton": {
+        "path": "tests/overleaf_mcp/components/tool_methods.py",
+        "imports": [
+          {
+            "name": null,
+            "module": "asyncio"
+          },
+          {
+            "name": null,
+            "module": "os"
+          }
+        ],
+        "functions": [
+          {
+            "name": "read_paper",
+            "is_decorated": false
+          },
+          {
+            "name": "update_and_push_paper",
+            "is_decorated": false
+          },
+          {
+            "name": "read_bibliography",
+            "is_decorated": false
+          },
+          {
+            "name": "update_and_push_bibliography",
+            "is_decorated": false
+          }
+        ],
+        "classes": [],
+        "source_text": "import asyncio\nimport os\n\nREPO_DIR: str = os.getenv(\"REPO_DIR\") or \"\"\nif not REPO_DIR:\n    raise RuntimeError(\n        \"REPO_DIR environment variable is not set.\\n\"\n        \"Create a .env file from .env.example and set REPO_DIR \"\n        \"to the absolute path of your local Overleaf git clone.\"\n    )\nREPO_DIR = os.path.abspath(os.path.expanduser(REPO_DIR))\n\n\nasync def read_paper():\n        ...\n\n\n\nasync def update_and_push_paper(latex_content: str, commit_message: str):\n        ...\n\n\n\nasync def read_bibliography(bib_file: str):\n        ...\n\n\n\nasync def update_and_push_bibliography(\n    bib_content: str, bib_file: str, commit_message: str\n):\n        ...\n\n\n\nTOOLS = {\n    \"read_paper\": read_paper,\n    \"update_and_push_paper\": update_and_push_paper,\n    \"read_bibliography\": read_bibliography,\n    \"update_and_push_bibliography\": update_and_push_bibliography,\n}\n",
+        "token_count": 212
+      }
+    },
+    "tests/overleaf_mcp/components/__init__.py": {
+      "hash": "e5956c89d80163b160cb9698547c473c342e2b211c3ffca9e6892f120cbf85b8",
+      "skeleton": {
+        "path": "tests/overleaf_mcp/components/__init__.py",
+        "imports": [
+          {
+            "name": "APIRouter",
+            "module": "fastapi"
+          },
+          {
+            "name": "mcp",
+            "module": ".mcp_endpoints"
+          }
+        ],
+        "functions": [],
+        "classes": [],
+        "source_text": "from fastapi import APIRouter\n\nfrom .mcp_endpoints import mcp\n\nrouter = APIRouter(prefix=\"/mcp\")\n\nrouter.include_router(mcp, tags=[\"MCP\"])\n",
+        "token_count": 37
+      }
+    },
+    "tests/overleaf_mcp/overleaf_mcp.py": {
+      "hash": "1d1105f86ee1f9cba2fec9ea183d9bab7716ebdcf182fde6a4fd2083e59fac68",
+      "skeleton": {
+        "path": "tests/overleaf_mcp/overleaf_mcp.py",
+        "imports": [
+          {
+            "name": null,
+            "module": "time"
+          },
+          {
+            "name": null,
+            "module": "uvicorn"
+          },
+          {
+            "name": "FastAPI",
+            "module": "fastapi"
+          },
+          {
+            "name": "Request",
+            "module": "fastapi"
+          },
+          {
+            "name": "router",
+            "module": "components"
+          }
+        ],
+        "functions": [
+          {
+            "name": "timer",
+            "is_decorated": true
+          },
+          {
+            "name": "request_logger",
+            "is_decorated": true
+          },
+          {
+            "name": "health_check",
+            "is_decorated": true
+          }
+        ],
+        "classes": [],
+        "source_text": "import time\n\nimport uvicorn\nfrom fastapi import FastAPI, Request\n\nfrom components import router\n\napp = FastAPI()\napp.include_router(router)\n\n\n@app.middleware(\"http\")\nasync def timer(req: Request, call_next):\n        ...\n\n\n\n@app.middleware(\"http\")\nasync def request_logger(req: Request, call_next):\n        ...\n\n\n\n@app.get(\"/health\")\nasync def health_check():\n        ...\n\n\n\nif __name__ == \"__main__\":\n    uvicorn.run(\"overleaf_mcp:app\", host=\"0.0.0.0\", port=8000)\n",
+        "token_count": 113
+      }
+    },
+    "tests/test_app.py": {
+      "hash": "7851f8af5201eb224ecbd4d62e9bf5cfdadd6822fa872d9ad58ddbe596b43261",
+      "skeleton": {
+        "path": "tests/test_app.py",
+        "imports": [
+          {
+            "name": "TestClient",
+            "module": "fastapi"
+          },
+          {
+            "name": "app",
+            "module": "app"
+          }
+        ],
+        "functions": [
+          {
+            "name": "test_read_root",
+            "is_decorated": false
+          },
+          {
+            "name": "test_helper",
+            "is_decorated": false
+          }
+        ],
+        "classes": [],
+        "source_text": "from fastapi import TestClient\nfrom app import app\n\nclient = TestClient(app)\n\ndef test_read_root():\n        ...\n\n\ndef test_helper():\n        ...\n\n",
+        "token_count": 32
+      }
+    }
+  }
+}

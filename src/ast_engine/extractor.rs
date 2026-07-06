@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::{Context, Result};
+use tiktoken_rs::cl100k_base;
 use tree_sitter::{Parser, QueryCursor};
 
 use super::queries::{class_query, decorated_query, function_query, import_from_query, import_query};
@@ -135,7 +136,8 @@ pub fn extract_skeleton(path: &Path) -> Result<FileSkeleton> {
     body_ranges.dedup_by_key(|r| (r.start, r.end));
 
     let stripped = strip_bodies(&source, &body_ranges);
-    let token_count = (stripped.len() / 4) as u32;
+    let bpe = cl100k_base().context("Failed to load tiktoken tokenizer")?;
+    let token_count = bpe.encode_with_special_tokens(&stripped).len() as u32;
 
     Ok(FileSkeleton {
         path: path.to_string_lossy().to_string(),

@@ -9,12 +9,12 @@ pub fn import_query() -> Query {
     .expect("invalid import query")
 }
 
-/// Captures `from foo import bar, baz` statements.
+/// Captures `from foo import bar, baz` and `from .foo import bar`.
 pub fn import_from_query() -> Query {
     Query::new(
         &tree_sitter_python::language(),
         "(import_from_statement
-           module_name: (dotted_name) @from_module
+           module_name: (_) @from_module
            name: (dotted_name) @import_name) @import_from",
     )
     .expect("invalid import_from query")

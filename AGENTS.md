@@ -11,31 +11,42 @@ This file provides context for AI coding assistants working on this project.
 ```
 src/
   main.rs               # Entry point — thin, delegates to modules
+  cache.rs              # File-hash cache (.coderag/cache.json)
   ast_engine/           # Tree-sitter parsing → AST skeletons
     mod.rs              # Re-exports
     queries.rs          # Tree-sitter query strings (import, class, func, decorator)
     skeleton.rs         # Data structures: FileSkeleton, Import
     extractor.rs        # extract_skeleton(): file → FileSkeleton with bodies stripped
-  graph_router/         # (Not yet implemented)
-    mod.rs              # Dependency graph resolver (imports + FastAPI Depends())
-  context_mgr/          # (Not yet implemented)
-    mod.rs              # "The Token Miser" — coverage delta detection
-  orchestrator/         # (Not yet implemented)
-    mod.rs              # Async LLM prompt assembler
+  graph_router/         # Dependency graph resolver (imports + FastAPI Depends())
+    mod.rs              # Full implementation with recursive BFS resolution
+  context_mgr/          # "The Token Miser" — coverage delta detection
+    mod.rs              # find_deltas(): source vs test comparison
+  orchestrator/         # LLM prompt assembler
+    mod.rs              # build_prompt(): source + deltas → prompt with tiktoken
 ```
 
-## Current State (Session 2)
+## Current State (Session 4)
 
 ### ✅ Implemented — AST Engine
 - **`queries.rs`**: 5 tree-sitter queries — `import_query`, `import_from_query`, `class_query`, `decorated_query`, `function_query`
-- **`skeleton.rs`**: `Import` struct (pub fields: `module`, `name` as `Option<String>`) and `FileSkeleton` struct (`path`, `imports`, `source_text`, `token_count`)
-- **`extractor.rs`**: `extract_skeleton(path)` — reads a `.py` file, parses with tree-sitter, extracts structured imports, strips function bodies (replaces with `...`), estimates token count
+- **`skeleton.rs`**: `Import` struct, `FnDef` struct (name + is_decorated), `ClassDef` struct, `FileSkeleton` struct (path, imports, functions, classes, source_text, token_count)
+- **`extractor.rs`**: `extract_skeleton(path)` — reads a `.py` file, parses with tree-sitter, extracts structured imports + function/class names, strips function bodies, estimates token count
+
+### ✅ Implemented — Graph Router
+- **`graph_router/mod.rs`**: `DependencyGraph` struct (map of file → dependencies), `resolve()` function that converts dotted module names to file paths and parses dependencies
+
+### ✅ Implemented — Context Manager ("The Token Miser")
+- **`context_mgr/mod.rs`**: `CoverageDelta` struct (uncovered functions), `find_deltas()` — compares source function names against test files to find uncovered functions
+
+### ✅ Implemented — Orchestrator
+- **`orchestrator/mod.rs`**: `Prompt` struct (text + token_count), `build_prompt()` — packages source skeleton + coverage deltas into an LLM prompt with instructions
+
+### 🎉 All 4 Components Done
+
+The full pipeline is wired in `main.rs` and works end-to-end.
 
 ### 🔜 Next Up
-- **`main.rs`**: User started writing `print_skeleton_summary()` but it only prints the path. Needs to be completed to test the AST engine end-to-end.
-- **Graph Router**: Walk imports from `FileSkeleton.imports` to resolve file dependencies
-- **Context Manager**: Compare existing tests vs source skeletons to find coverage deltas
-- **Orchestrator**: Package compressed context + deltas into LLM prompt
+- Further refinements (real tokenization with tiktoken, dependency graph integration, actual LLM API calls)
 
 ## Tech Stack & Conventions
 
