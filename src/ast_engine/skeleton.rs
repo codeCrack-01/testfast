@@ -10,6 +10,7 @@ pub struct Import {
 pub struct FnDef {
     pub name: String,
     pub is_decorated: bool,
+    pub signature: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,5 +25,6 @@ pub struct FileSkeleton {
     pub functions: Vec<FnDef>,
     pub classes: Vec<ClassDef>,
     pub source_text: String,
+    pub raw_source: String,
     pub token_count: u32,
 }

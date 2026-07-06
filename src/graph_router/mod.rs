@@ -89,10 +89,10 @@ pub fn resolve(
 
         // Queue up this dependency's own imports
         for import in &dep.imports {
-            if let Some(sub_module) = &import.module {
-                if !visited.contains(sub_module) {
-                    queue.push((dep_path.clone(), sub_module.clone()));
-                }
+            if let Some(sub_module) = &import.module
+                && !visited.contains(sub_module)
+            {
+                queue.push((dep_path.clone(), sub_module.clone()));
             }
         }
 

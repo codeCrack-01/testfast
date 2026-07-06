@@ -63,7 +63,10 @@ The full pipeline is wired in `main.rs` and works end-to-end.
 | Command         | Description                    |
 |-----------------|--------------------------------|
 | `cargo build`   | Build the project              |
-| `cargo run`     | Run the binary                 |
+| `cargo run --bin testfast -- --pretend [PATH]` | Run in dry-run mode |
+| `cargo run --bin testfast -- -v` | Show version       |
+| `cargo run --bin testfast -- --no-auto [PATH]` | Generate tests without auto-fix |
+| `cargo run --bin testfast -- --more --re [PATH]` | Full source, fresh generation |
 | `cargo test`    | Run tests                      |
 | `cargo fmt`     | Format code                    |
 | `cargo clippy`  | Lint                           |

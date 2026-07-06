@@ -57,19 +57,90 @@
 - `src/orchestrator/mod.rs` — full implementation + tiktoken for prompt token count
 - `src/main.rs` — wired orchestrator call
 
-## 2026-07-06 — Session 5: File-hash cache
+## 2026-07-06 — Session 5: File-hash cache + test_agent.md
 
 **Description**: Added persistent file-hash cache (`.coderag/cache.json`) to avoid re-parsing unchanged files. Uses SHA256 content hash to detect modifications. Cache module (`src/cache.rs`) with `SkeletonCache` struct providing `get_or_extract()`, used by both `main.rs` and `graph_router::resolve()`. Cache is committed to the repo for session persistence. Serialization via serde+serde_json.
 
+Added `test_agent.md` — a persistent memory file stored in the project directory. Tracks which functions already have tests (coverage memory) and test style conventions. The pipeline excludes known-covered functions from deltas and includes the style guide in the prompt for consistent output.
+
 **Files created**:
 - `src/cache.rs` — cache module with `SkeletonCache`
+- `src/test_agent.rs` — test agent memory module
 
 **Files modified**:
 - `Cargo.toml` — added serde, serde_json, sha2
 - `src/ast_engine/skeleton.rs` — serde derives + Clone
 - `src/ast_engine/queries.rs` — fixed import_from_query for relative imports
 - `src/graph_router/mod.rs` — recursive resolution, cache integration
-- `src/main.rs` — wired cache
-- `src/orchestrator/mod.rs` — tiktoken token counting
+- `src/context_mgr/mod.rs` — accepts known_covered param
+- `src/orchestrator/mod.rs` — accepts style_context param
+- `src/main.rs` — wired cache + test_agent
 - `src/ast_engine/extractor.rs` — tiktoken integration
+- `SESSION_LOG.md`, `AGENTS.md` — updated
+
+## 2026-07-06 — Session 6: CLI, LLM integration, --pretend
+
+**Description**: Turned coderag into a proper CLI tool (`testfast`). Added:
+- `clap` argument parsing with `-v`, `--pretend`, and `[PATH]` args
+- LLM module with OpenAI and Anthropic support via `LLM_KEY` / `LLM_PROVIDER` env vars
+- `--pretend`: runs pipeline to prompt generation, prints to stdout, touches no files
+- `generator.rs`: saves generated tests to `tests/test_generated.py`, creates `conftest.py`
+- `dotenvy` for `.env` file loading
+- Auto-discovery of FastAPI entry point and existing test files
+
+**Files created**:
+- `src/cli.rs` — CLI argument parsing
+- `src/llm.rs` — OpenAI + Anthropic API calls via reqwest
+- `src/generator.rs` — test file output + conftest template
+
+**Files modified**:
+- `Cargo.toml` — added clap, dotenvy, reqwest; set `[[bin]] name = "testfast"`
+- `src/main.rs` — full refactor: pipeline fn, pretend/real mode, auto-discovery
+- `src/graph_router/mod.rs` — clippy fix
+- `SESSION_LOG.md`, `AGENTS.md` — updated
+
+## 2026-07-06 — Session 8: Auto-fix loop, smart body stripping
+
+**Description**: Added `--auto`/`--no-auto` flag with auto-fix as default. The tool now runs pytest after generating tests, feeds failures back to the LLM, and retries up to 3 times. Smart body stripping keeps `return`, `raise`, `await`, `response.*`, `state.*` lines from function bodies so the LLM sees critical details without full source.
+
+**Files created**:
+- `src/autofix.rs` — pytest runner + retry loop
+
+**Files modified**:
+- `src/cli.rs` — `--auto` → `--no-auto` (opt-out, default on)
+- `src/orchestrator/mod.rs` — added `build_fix_prompt()`
+- `src/ast_engine/extractor.rs` — smarter `filter_body()` keeps key lines
+- `src/ast_engine/skeleton.rs` — added `raw_source` field
+- `src/main.rs` — wired autofix loop, passes source skeleton
+- `SESSION_LOG.md`, `AGENTS.md` — updated
+
+## 2026-07-06 — Session 7: Provider autodetect, compact prompt, quality fixes
+
+**Description**: Major UX improvements and test quality fixes:
+- Added `--more` flag for full source context in prompts (vs compact signatures)
+- Added `--re` flag with confirmation prompt to regenerate tests from scratch
+- Added Groq + Gemini provider support with auto-detection from API key prefix (`gsk_`, `AIza`)
+- Added `LLM_BASE_URL` env var for any OpenAI-compatible provider
+- Gemini now uses native API as fallback (with `?key=` query param)
+- Strips markdown code fences from LLM output before saving
+- Conftest auto-adds project root to `sys.path` and imports the correct app module
+- Conftest enables `pytest.mark.anyio` via `pytest_plugins = ("anyio",)`
+- Prompt instructions: `@pytest.mark.anyio`, mock env vars, check actual responses
+- Prompt now shows function signatures (decorator + def line + params) instead of just names
+- Coverage now based on actual test files only (agent memory only used for style guide)
+- `find_main_file` skips `venv/`, `env/`, `site-packages/` directories
+- Better API error messages showing raw response body + model name
+- Skip LLM call entirely when no uncovered functions
+
+**Files modified**:
+- `src/cli.rs` — added `--more`, `--re` flags
+- `src/llm.rs` — Groq, Gemini, Gemini native fallback, LLM_BASE_URL, better errors
+- `src/orchestrator/mod.rs` — `more` param, compact vs full mode, signatures, stricter instructions
+- `src/ast_engine/queries.rs` — added `func_params` capture
+- `src/ast_engine/skeleton.rs` — added `signature` field to `FnDef`
+- `src/ast_engine/extractor.rs` — builds signature from decorator + params
+- `src/context_mgr/mod.rs` — removed agent memory from coverage check
+- `src/generator.rs` — strip markdown fences, autoconfigured conftest
+- `src/main.rs` — `--re` logic, venv skip, more flag
+- `src/test_agent.rs` — suppress dead code warning
 - `SESSION_LOG.md`, `AGENTS.md` — updated

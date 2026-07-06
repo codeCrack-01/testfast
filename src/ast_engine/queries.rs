@@ -40,6 +40,7 @@ pub fn decorated_query() -> Query {
            (decorator) @decorator
            definition: (function_definition
              name: (identifier) @func_name
+             parameters: (parameters) @func_params
              body: (block) @func_body)) @decorated_func",
     )
     .expect("invalid decorated query")
@@ -51,6 +52,7 @@ pub fn function_query() -> Query {
         &tree_sitter_python::language(),
         "(module (function_definition
            name: (identifier) @func_name
+           parameters: (parameters) @func_params
            body: (block) @func_body)) @function_def",
     )
     .expect("invalid function query")

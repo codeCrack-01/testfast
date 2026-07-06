@@ -71,11 +71,19 @@ pub fn extract_skeleton(path: &Path) -> Result<FileSkeleton> {
     let mut cursor = QueryCursor::new();
     for match_ in cursor.matches(&query, root, source.as_bytes()) {
         let mut func_name = None;
+        let mut decorator = None;
+        let mut params = None;
         for cap in match_.captures {
-            let name = query.capture_names()[cap.index as usize];
-            match name {
+            let cap_name = query.capture_names()[cap.index as usize];
+            match cap_name {
                 "func_name" => {
                     func_name = Some(cap.node.utf8_text(source.as_bytes())?.to_string());
+                }
+                "decorator" => {
+                    decorator = Some(cap.node.utf8_text(source.as_bytes())?.to_string());
+                }
+                "func_params" => {
+                    params = Some(cap.node.utf8_text(source.as_bytes())?.to_string());
                 }
                 "func_body" => {
                     body_ranges.push(cap.node.byte_range());
@@ -84,9 +92,13 @@ pub fn extract_skeleton(path: &Path) -> Result<FileSkeleton> {
             }
         }
         if let Some(name) = func_name {
+            let decorator_text = decorator.unwrap_or_default();
+            let param_text = params.unwrap_or_default();
+            let sig = format!("{decorator_text}\ndef {name}{param_text}:");
             functions.push(FnDef {
                 name,
                 is_decorated: true,
+                signature: sig,
             });
         }
     }
@@ -96,11 +108,15 @@ pub fn extract_skeleton(path: &Path) -> Result<FileSkeleton> {
     let mut cursor = QueryCursor::new();
     for match_ in cursor.matches(&query, root, source.as_bytes()) {
         let mut func_name = None;
+        let mut params = None;
         for cap in match_.captures {
-            let name = query.capture_names()[cap.index as usize];
-            match name {
+            let cap_name = query.capture_names()[cap.index as usize];
+            match cap_name {
                 "func_name" => {
                     func_name = Some(cap.node.utf8_text(source.as_bytes())?.to_string());
+                }
+                "func_params" => {
+                    params = Some(cap.node.utf8_text(source.as_bytes())?.to_string());
                 }
                 "func_body" => {
                     body_ranges.push(cap.node.byte_range());
@@ -109,9 +125,12 @@ pub fn extract_skeleton(path: &Path) -> Result<FileSkeleton> {
             }
         }
         if let Some(name) = func_name {
+            let param_text = params.unwrap_or_default();
+            let sig = format!("def {name}{param_text}:");
             functions.push(FnDef {
                 name,
                 is_decorated: false,
+                signature: sig,
             });
         }
     }
@@ -145,11 +164,41 @@ pub fn extract_skeleton(path: &Path) -> Result<FileSkeleton> {
         functions,
         classes,
         source_text: stripped,
+        raw_source: source,
         token_count,
     })
 }
 
-/// Replace every byte range in `ranges` (sorted, non-overlapping) with `    ...\n`.
+/// Keep key lines (return, raise, await, async with, yield, and assignments from await).
+fn filter_body(source: &str, range: &std::ops::Range<usize>) -> String {
+    let body = &source[range.start..range.end];
+    let mut out = String::new();
+    let mut kept = false;
+    for line in body.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("return")
+            || trimmed.starts_with("raise")
+            || trimmed.starts_with("await")
+            || trimmed.starts_with("async with")
+            || trimmed.starts_with("yield")
+            || trimmed.starts_with("response")
+            || trimmed.starts_with("state.")
+            || trimmed.contains(" = await ")
+            || trimmed.contains(" = response.")
+        {
+            out.push_str(line);
+            out.push('\n');
+            kept = true;
+        }
+    }
+    if kept {
+        out
+    } else {
+        "    ...\n".to_string()
+    }
+}
+
+/// Replace every byte range in `ranges` (sorted, non-overlapping) with key lines or `...`.
 fn strip_bodies(source: &str, ranges: &[std::ops::Range<usize>]) -> String {
     let mut result = String::with_capacity(source.len());
     let mut last_end = 0usize;
@@ -157,8 +206,8 @@ fn strip_bodies(source: &str, ranges: &[std::ops::Range<usize>]) -> String {
     for range in ranges {
         // Append text before this body
         result.push_str(&source[last_end..range.start]);
-        // Append placeholder — preserves indentation context
-        result.push_str("    ...\n");
+        // Append key lines from the body
+        result.push_str(&filter_body(source, range));
         last_end = range.end;
     }
     // Append remaining text after the last body
